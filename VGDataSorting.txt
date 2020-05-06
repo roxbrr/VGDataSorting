@@ -1,0 +1,675 @@
+#!/usr/bin/perl
+#Video Game Data Sorting 
+
+use strict;
+use warnings;
+
+use Text::CSV;
+use Term::Menus;
+use Class::Struct;
+use List::MoreUtils qw(uniq);
+use Term::ANSIColor;
+#store the record from csv
+struct Manager => {         # Creates a Manager->new() constructor.
+	rank    => '$',
+	name    => '$',        
+	platform  => '$',       
+	year => '$',        
+	genre    => '$',
+	publisher    => '$',        
+	na_sales  => '$',       
+	eu_sales => '$', 
+	jp_sales    => '$',        
+	other_sales  => '$',       
+	global_sales => '$'
+};
+#store the record array
+my @mgr_array;
+#csv file
+my $file = "vgsales.csv";
+
+#read file and store the records into mgr_array
+open my $fh, "<", $file or die "$file: $!";
+my $csv = Text::CSV->new ({
+	binary    => 1, # Allow special character. Always set this
+	auto_diag => 1, # Report irregularities immediately
+});
+$csv->getline ($fh);
+my $index = 0;
+while (my $row = $csv->getline ($fh)) {
+	my $mgr = Manager->new();
+	$mgr->rank($row->[0]+0);
+	$mgr->name($row->[1]);
+	$mgr->platform($row->[2]);
+	$mgr->year($row->[3]);
+	$mgr->genre($row->[4]);
+	$mgr->publisher($row->[5]);
+	$mgr->na_sales($row->[6]+0);
+	$mgr->eu_sales($row->[7]+0);
+	$mgr->jp_sales($row->[8]+0);
+	$mgr->other_sales($row->[9]+0);
+	$mgr->global_sales($row->[10]+0);
+	$mgr_array[$index] = $mgr;
+	$index = $index + 1;
+}
+close $fh;
+
+#menu item
+my @list=('Top sales for North America','Top sales by Platform','Top sales by Year','Top sales by Genre','Top sales by Publisher','Top sales by Platform given the year','Top sales by Genre given the year','Top sales by Publisher given the year','Game with the lowest sales','Game with the highest sales','Platform with the lowest sales','Platform with the highest sales','Publisher with the lowest sales','Publisher with the highest sales','Year with the lowest sales','Year with highest sales');
+my $banner="  Please Pick an Item:";
+my $selection=&pick(\@list,$banner);
+print "SELECTION = $selection\n";
+my $v_name="";
+my $v_platform="";
+my $v_year="";
+my $v_genre="";
+my $v_publisher="";
+my $v_na_sales = 0;
+my $v_eu_sales = 0;
+my $v_jp_sales = 0;
+my $v_other_sales = 0;
+my $v_global_sales = 0;
+my $v_no = 1;
+
+#format function
+sub Format {
+	$v_name="";
+	$v_platform="";
+	$v_year="";
+	$v_genre="";
+	$v_publisher="";
+	$v_na_sales = 0;
+	$v_eu_sales = 0;
+	$v_jp_sales = 0;
+	$v_other_sales = 0;
+	$v_global_sales = 0;
+	$v_no = 1;
+}
+sub PrintResult{
+	print color('green');
+	print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+	print "\tRank:  $v_no\n";
+	print "\tName:  $v_name\n";
+	print "\tPlatform:  $v_platform\n";
+	print "\tYear:  $v_year\n";
+	print "\tGenre:  $v_genre\n";
+	print "\tPublisher:  $v_publisher\n";
+	print "\tNA_Sales:  $v_na_sales\n";
+	print "\tEU_Sales:  $v_eu_sales\n";
+	print "\tJP_Sales:  $v_jp_sales\n";
+	print "\tOther_Sales:  $v_other_sales\n";
+	print "\tGlobal_Sales:  $v_global_sales\n";
+	print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+	Format();
+}
+if( $selection  eq  'Top sales for North America' ) {
+#get the length of records from msr_array
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales >= $v_na_sales){	#if sales for north america is bigger than previous value
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			
+		}
+		
+	}
+	print color('Green');
+	print "\n\t=========== Top Sales: $v_na_sales =============\n";
+	print "Details:\n";
+#print result
+	PrintResult();
+
+}elsif($selection  eq  'Top sales by Platform' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+#get the platform from mgr_array
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $platform = $mgr->platform;
+		$tmp_arr[$i] = $platform;
+	}
+#remove the duplicated item
+	my @unique_words = uniq @tmp_arr;
+#set the submenu
+	my $sub_banner="  Please select submenu:";
+	my $selection=&pick(\@unique_words,$sub_banner);
+	print "Selected platform:  $selection\n";
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $platform = $mgr->platform;
+		my $na_sales = $mgr->na_sales;
+#platform is same and sales is bigger than previous,change the $_v values
+		if($selection eq $platform){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Top sales by Year' ){
+	my @tmp_arr;
+#get the length of records
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $year = $mgr->year;
+		$tmp_arr[$i] = $year;
+	}
+#remove the duplicated value
+	my @unique_words = uniq @tmp_arr;
+	my $sub_banner="  Please select submenu:";
+	my $selection=&pick(\@unique_words,$sub_banner);
+	print "Selected year:  $selection\n";
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $year = $mgr->year;
+		my $na_sales = $mgr->na_sales;
+#year is same and...
+		if($selection eq $year){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Top sales by Genre' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $genre = $mgr->genre;
+		$tmp_arr[$i] = $genre;
+	}
+	my @unique_words = uniq @tmp_arr;
+	my $sub_banner="  Please select submenu:";
+	my $selection=&pick(\@unique_words,$sub_banner);
+	print "Selected genre:  $selection\n";
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $genre = $mgr->genre;
+		my $na_sales = $mgr->na_sales;
+		if($selection eq $genre){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Top sales by Publisher' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $publisher = $mgr->publisher;
+		$tmp_arr[$i] = $publisher;
+	}
+	my @unique_words = uniq @tmp_arr;
+	my $sub_banner="  Please select submenu:";
+	my $selection=&pick(\@unique_words,$sub_banner);
+	print "Selected publisher:  $selection\n";
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $publisher = $mgr->publisher;
+		my $na_sales = $mgr->na_sales;
+		if($selection eq $publisher){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Top sales by Platform given the year' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $year = $mgr->year;
+		$tmp_arr[$i] = $year;
+	}
+	my @unique_words = uniq @tmp_arr;
+	my $sub_banner="  Please select submenu(year):";
+	my $year_selection=&pick(\@unique_words,$sub_banner);
+	print "Selected year:  $year_selection\n";
+	
+	my @tmp_arr2;
+	my $index = 0;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $platform = $mgr->platform;
+		if($mgr->year eq $year_selection){
+			$tmp_arr2[$index] = $platform;
+			$index = $index+1;
+		}
+	}
+	@unique_words = uniq @tmp_arr2;
+	$sub_banner="  Please select submenu(platform):";
+	my $platform_selection=&pick(\@unique_words,$sub_banner);
+	print "Selected platform($year_selection):  $platform_selection\n";
+
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $platform = $mgr->platform;
+		my $year = $mgr->year;
+		my $na_sales = $mgr->na_sales;
+		if($platform_selection eq $platform and $year_selection eq $year){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Top sales by Genre given the year' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $year = $mgr->year;
+		$tmp_arr[$i] = $year;
+	}
+	my @unique_words = uniq @tmp_arr;
+	my $sub_banner="  Please select submenu(year):";
+	my $year_selection=&pick(\@unique_words,$sub_banner);
+	print "Selected year:  $year_selection\n";
+	
+	my @tmp_arr2;
+	my $index = 0;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $genre = $mgr->genre;
+		if($mgr->year eq $year_selection){
+			$tmp_arr2[$index] = $genre;
+			$index = $index+1;
+		}
+	}
+	@unique_words = uniq @tmp_arr2;
+	$sub_banner="  Please select submenu(genre):";
+	my $genre_selection=&pick(\@unique_words,$sub_banner);
+	print "Selected genre($year_selection):  $genre_selection\n";
+
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $genre = $mgr->genre;
+		my $year = $mgr->year;
+		my $na_sales = $mgr->na_sales;
+		if($genre_selection eq $genre and $year_selection eq $year){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Top sales by Publisher given the year' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $year = $mgr->year;
+		$tmp_arr[$i] = $year;
+	}
+	my @unique_words = uniq @tmp_arr;
+	my $sub_banner="  Please select submenu(year):";
+	my $year_selection=&pick(\@unique_words,$sub_banner);
+	print "Selected year:  $year_selection\n";
+	
+	my @tmp_arr2;
+	my $index = 0;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $publisher = $mgr->publisher;
+		if($mgr->year eq $year_selection){
+			$tmp_arr2[$index] = $publisher;
+			$index = $index+1;
+		}
+	}
+	@unique_words = uniq @tmp_arr2;
+	$sub_banner="  Please select submenu(publisher):";
+	my $publisher_selection=&pick(\@unique_words,$sub_banner);
+	print "Selected publisher($year_selection):  $publisher_selection\n";
+
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $publisher = $mgr->publisher;
+		my $year = $mgr->year;
+		my $na_sales = $mgr->na_sales;
+		if($publisher_selection eq $publisher and $year_selection eq $year){
+			if($na_sales >= $v_na_sales){
+				$v_name = $mgr->name;
+				$v_platform = $mgr->platform;
+				$v_year = $mgr->year;
+				$v_genre=$mgr->genre;
+				$v_publisher=$mgr->publisher;
+				$v_eu_sales = $mgr->eu_sales;
+				$v_jp_sales = $mgr->jp_sales;
+				$v_other_sales = $mgr->other_sales;
+				$v_global_sales = $mgr->global_sales;
+				$v_no = $mgr->rank;
+				$v_na_sales = $mgr->na_sales;
+			}
+		}
+	}
+	PrintResult();
+}elsif($selection  eq  'Game with the lowest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	$v_na_sales = 99999999;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales <= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			if ($v_na_sales == 0){
+				print color('bold red');
+				print "$v_name(Sales:$v_na_sales)\n";
+				print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+				print "\n";
+			}
+		}
+		
+	}
+	if ($v_na_sales != 0){
+		print "$v_name(Sales:$v_na_sales)\n";
+		print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+		print "\n";
+	}
+	Format();
+	
+}elsif($selection  eq  'Game with the highest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales >= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			
+		}
+		
+	}
+	print color('green');
+	print "\n\t=========== Highest Game: $v_name =============\n";
+	print "Details:\n";
+	PrintResult();
+	
+}elsif($selection  eq  'Platform with the lowest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	$v_na_sales  = 999999;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales <= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			if ($v_na_sales == 0){
+				print color('bold red');
+				print "Platform:$v_platform(Sales:$v_na_sales)\n";
+				print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+				print "\n";
+			}
+		}
+	}
+	if ($v_na_sales != 0){
+		print "Platform:$v_platform(Sales:$v_na_sales)\n";
+		print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+		print "\n";
+	}
+	Format();
+	
+}elsif($selection  eq  'Platform with the highest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales >= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			
+		}
+		
+	}
+	print color('green');
+	print "\n\t=========== Highest Platform: $v_platform =============\n";
+	print "Details:\n";
+	PrintResult();
+	
+}elsif($selection  eq  'Publisher with the lowest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	$v_na_sales  = 999999;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales <= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			if ($v_na_sales == 0){
+				print color('bold red');
+				print "Publisher:$v_publisher(Sales:$v_na_sales)\n";
+				print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+				print "\n";
+			}
+		}
+	}
+	if ($v_na_sales != 0){
+		print "Publisher:$v_publisher(Sales:$v_na_sales)\n";
+		print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+		print "\n";
+	}
+	Format();
+	
+}elsif($selection  eq  'Publisher with the highest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales >= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			
+		}
+		
+	}
+	print color('green');
+	print "\n\t=========== Highest Publisher: $v_publisher =============\n";
+	print "Details:\n";
+	PrintResult();
+	
+}elsif($selection  eq  'Year with the lowest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	$v_na_sales  = 999999;
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales <= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			if ($v_na_sales == 0){
+				print color('bold red');
+				print "Year:$v_year(Sales:$v_na_sales)\n";
+				print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+				print "\n";
+			}
+		}
+	}
+	if ($v_na_sales != 0){
+		print "Year:$v_year(Sales:$v_na_sales)\n";
+		print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+		print "\n";
+	}
+	Format();
+	
+}elsif($selection  eq  'Year with the highest sales' ){
+	my @tmp_arr;
+	my $arr_len = scalar(@mgr_array);
+	for(my $i=0;$i<$arr_len;$i = $i+1){
+		my $mgr = $mgr_array[$i];
+		my $na_sales = $mgr->na_sales;
+		if($na_sales >= $v_na_sales){
+			$v_name = $mgr->name;
+			$v_platform = $mgr->platform;
+			$v_year = $mgr->year;
+			$v_genre=$mgr->genre;
+			$v_publisher=$mgr->publisher;
+			$v_eu_sales = $mgr->eu_sales;
+			$v_jp_sales = $mgr->jp_sales;
+			$v_other_sales = $mgr->other_sales;
+			$v_global_sales = $mgr->global_sales;
+			$v_no = $mgr->rank;
+			$v_na_sales = $mgr->na_sales;
+			
+		}
+		
+	}
+	print color('green');
+	print "\n\t=========== Highest Year: $v_year =============\n";
+	print "Details:\n";
+	PrintResult();
+	
+}
+
+
+
+
+
+
+
+
